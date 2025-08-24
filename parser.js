@@ -4,46 +4,42 @@ const path = require('path');
 
 (async () => {
     try {
-        // Проверяем, существует ли Chrome по ожидаемому пути
+        // 🔍 Попробуем найти Chrome
         const expectedPath = '/opt/render/.cache/puppeteer/chrome/linux-127.0.6533.88/chrome-linux64/chrome';
-        const exists = fs.existsSync(expectedPath);
-        console.log(`🔍 Путь к Chrome: ${expectedPath}`);
-        console.log(`✅ Файл существует: ${exists}`);
+        let executablePath = expectedPath;
 
-        if (!exists) {
-            console.log('❌ Chrome не найден по указанному пути');
-            console.log('🔎 Попробуем найти в кэше...');
+        if (!fs.existsSync(expectedPath)) {
+            console.log('❌ Chrome не найден по пути:', expectedPath);
+            console.log('🔎 Ищем в кэше...');
 
-            // Попробуем найти Chrome в кэше
             const cacheDir = '/opt/render/.cache/puppeteer/';
             const files = fs.readdirSync(cacheDir, { recursive: true });
             const chromePaths = files
                 .filter(f => f.includes('chrome') && f.includes('linux') && f.endsWith('chrome'))
                 .map(f => path.join(cacheDir, f));
 
-            console.log('🔍 Найденные возможные пути:');
-            chromePaths.forEach(p => console.log('  ', p));
-
             if (chromePaths.length === 0) {
-                console.log('❌ Chrome не найден в кэше');
-                process.exit(1);
+                throw new Error('❌ Chrome не найден в кэше Render.com');
             }
 
-            // Используем первый найденный путь
-            const executablePath = chromePaths[0];
-            console.log(`✅ Используем: ${executablePath}`);
+            executablePath = chromePaths[0];
+            console.log(`✅ Используем найденный Chrome: ${executablePath}`);
+        } else {
+            console.log(`✅ Используем прямой путь: ${executablePath}`);
+        }
 
-            const browser = await puppeteer.launch({
-                headless: "new",
-                args: [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-gpu',
-                    '--single-process'
-                ],
-                executablePath
-            });
+        // ✅ Запускаем браузер с найденным Chrome
+        const browser = await puppeteer.launch({
+            headless: "new",
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--single-process'
+            ],
+            executablePath
+        });
 
         const page = await browser.newPage();
         console.log('1. Открываем: https://loads.ati.su');
@@ -145,6 +141,6 @@ const path = require('path');
 
     } catch (error) {
         console.error('❌ Ошибка:', error.message);
-        process.exit(1); // Важно: завершить процесс при ошибке
+        process.exit(1);
     }
 })();
