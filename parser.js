@@ -1,16 +1,22 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
+const chromium = require('chrome-aws-lambda');
 
 (async () => {
+    let browser = null;
+
     try {
-        const browser = await puppeteer.launch({
-            headless: "new",
-            args: [
+        console.log('🚀 Запускаем браузер через chrome-aws-lambda...');
+
+        browser = await puppeteer.launch({
+            executablePath: await chromium.executablePath,
+            args: chromium.args.concat([
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
                 '--single-process'
-            ]
+            ]),
+            headless: true
         });
 
         const page = await browser.newPage();
@@ -56,7 +62,7 @@ const puppeteer = require('puppeteer');
                 const weightEl = item.querySelector('span.OIT8K');
                 const weightText = weightEl?.textContent || '';
                 const weightMatch = weightText.match(/(\d+(\.\d+)?)\s*т/);
-                const weight = weightMatch ? weightMatch[1] + ' т' : '—';
+                const weight = weightMatch ? weightMatch[1] + ' т' || '—';
 
                 // Извлекаем цену
                 const priceEl = item.querySelector('[data-testid="compact-view-hidden-rate"]');
@@ -109,10 +115,11 @@ const puppeteer = require('puppeteer');
         }
 
         console.log('✅ Все грузы обработаны и отправлены в Google Таблицу');
-        await browser.close();
 
     } catch (error) {
         console.error('❌ Ошибка:', error.message);
         process.exit(1);
+    } finally {
+        if (browser) await browser.close();
     }
 })();
