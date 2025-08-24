@@ -5,16 +5,26 @@ const chromium = require('chrome-aws-lambda');
     let browser = null;
 
     try {
-        console.log('🚀 Запускаем браузер через chrome-aws-lambda...');
+        console.log('🚀 Пытаемся получить путь к Chrome...');
+
+        // Убедимся, что executablePath доступен
+        const executablePath = await chromium.executablePath;
+
+        if (!executablePath) {
+            throw new Error('❌ Не удалось получить путь к Chrome от chrome-aws-lambda');
+        }
+
+        console.log(`✅ Chrome найден: ${executablePath}`);
 
         browser = await puppeteer.launch({
-            executablePath: await chromium.executablePath,
+            executablePath,
             args: chromium.args.concat([
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
-                '--single-process'
+                '--single-process',
+                '--headless=new'
             ]),
             headless: true
         });
