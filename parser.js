@@ -1,19 +1,49 @@
 const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
 
-// ✅ Оборачиваем всё в асинхронную функцию
 (async () => {
     try {
-        const browser = await puppeteer.launch({
-    headless: "new",
-    args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process'
-    ],
-    executablePath: '/opt/render/.cache/puppeteer/chrome/linux-127.0.6533.88/chrome-linux64/chrome'
-});
+        // Проверяем, существует ли Chrome по ожидаемому пути
+        const expectedPath = '/opt/render/.cache/puppeteer/chrome/linux-127.0.6533.88/chrome-linux64/chrome';
+        const exists = fs.existsSync(expectedPath);
+        console.log(`🔍 Путь к Chrome: ${expectedPath}`);
+        console.log(`✅ Файл существует: ${exists}`);
+
+        if (!exists) {
+            console.log('❌ Chrome не найден по указанному пути');
+            console.log('🔎 Попробуем найти в кэше...');
+
+            // Попробуем найти Chrome в кэше
+            const cacheDir = '/opt/render/.cache/puppeteer/';
+            const files = fs.readdirSync(cacheDir, { recursive: true });
+            const chromePaths = files
+                .filter(f => f.includes('chrome') && f.includes('linux') && f.endsWith('chrome'))
+                .map(f => path.join(cacheDir, f));
+
+            console.log('🔍 Найденные возможные пути:');
+            chromePaths.forEach(p => console.log('  ', p));
+
+            if (chromePaths.length === 0) {
+                console.log('❌ Chrome не найден в кэше');
+                process.exit(1);
+            }
+
+            // Используем первый найденный путь
+            const executablePath = chromePaths[0];
+            console.log(`✅ Используем: ${executablePath}`);
+
+            const browser = await puppeteer.launch({
+                headless: "new",
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--single-process'
+                ],
+                executablePath
+            });
 
         const page = await browser.newPage();
         console.log('1. Открываем: https://loads.ati.su');
