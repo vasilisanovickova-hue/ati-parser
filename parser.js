@@ -1,10 +1,18 @@
 const puppeteer = require('puppeteer');
 
-(async () => {
-    const browser = await puppeteer.launch({
-        headless: false,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+const browser = await puppeteer.launch({
+    headless: "new",  // или true, если не нужен GUI
+    args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process' // Важно для Render
+    ],
+    executablePath: process.env.CHROME_PATH || undefined
+});
 
     const page = await browser.newPage();
 

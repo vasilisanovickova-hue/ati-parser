@@ -1,12 +1,11 @@
 {
   "name": "ati-parser",
   "version": "1.0.0",
-  "description": "Парсер грузов с loads.ati.su",
-  "main": "parser.js",
   "scripts": {
+    "install": "npx puppeteer browsers install chrome",
     "start": "node parser.js"
   },
   "dependencies": {
-    "puppeteer": "^23.0.0"
+    "puppeteer": "^22.0.0"
   }
 }
