@@ -4,16 +4,16 @@ const puppeteer = require('puppeteer');
 (async () => {
     try {
         const browser = await puppeteer.launch({
-            headless: "new", // или 'chrome' для полного браузера
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--single-process'
-            ],
-            executablePath: process.env.CHROME_PATH || undefined
-        });
+    headless: "new",
+    args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--single-process'
+    ],
+    executablePath: '/opt/render/.cache/puppeteer/chrome/linux-127.0.6533.88/chrome-linux64/chrome'
+});
 
         const page = await browser.newPage();
         console.log('1. Открываем: https://loads.ati.su');
