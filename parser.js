@@ -1,22 +1,21 @@
 const puppeteer = require('puppeteer');
 
-const browser = await puppeteer.launch({
-    headless: "new",  // или true, если не нужен GUI
-    args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process' // Важно для Render
-    ],
-    executablePath: process.env.CHROME_PATH || undefined
-});
-
-    const page = await browser.newPage();
-
+// ✅ Оборачиваем всё в асинхронную функцию
+(async () => {
     try {
+        const browser = await puppeteer.launch({
+            headless: "new", // или 'chrome' для полного браузера
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--single-process'
+            ],
+            executablePath: process.env.CHROME_PATH || undefined
+        });
+
+        const page = await browser.newPage();
         console.log('1. Открываем: https://loads.ati.su');
         await page.goto('https://loads.ati.su', { waitUntil: 'networkidle0', timeout: 60000 });
 
@@ -32,54 +31,50 @@ const browser = await puppeteer.launch({
 
         console.log('2. Хэш установлен вручную');
 
-        // Ждём 30 секунд — чтобы грузы точно подгрузились
-        await new Promise(resolve => setTimeout(resolve, 30000));
+        // Ждём 25 секунд — чтобы грузы точно подгрузились
+        await new Promise(resolve => setTimeout(resolve, 25000));
 
         // Проверяем, есть ли грузы
         const hasLoads = await page.$('[data-app="pretty-load"]') !== null;
 
         if (!hasLoads) {
             console.log('❌ Грузы не появились');
+            await browser.close();
             return;
         }
 
         console.log('🚚 Грузы загружены');
 
-        // Собираем данные
+        // Собираем данные напрямую из элементов
         const results = await page.evaluate(() => {
-    const items = Array.from(document.querySelectorAll('[data-app="pretty-load"]'));
-    return items.map(item => {
-        // Ищем города
-        const cityElements = Array.from(item.querySelectorAll('div.xsQQG'));
-        const from = cityElements[0]?.textContent.trim() || '—';
-        const to = cityElements[1]?.textContent.trim() || '—';
+            const items = Array.from(document.querySelectorAll('[data-app="pretty-load"]'));
+            return items.map(item => {
+                // Ищем города
+                const cityElements = Array.from(item.querySelectorAll('div.xsQQG'));
+                const from = cityElements[0]?.textContent.trim() || '—';
+                const to = cityElements[1]?.textContent.trim() || '—';
 
-        // Извлекаем вес
-        const weightEl = item.querySelector('span.OIT8K');
-        const weightText = weightEl?.textContent || '';
-        const weightMatch = weightText.match(/(\d+(\.\d+)?)\s*т/);
-        const weight = weightMatch ? weightMatch[1] + ' т' : '—';
+                // Извлекаем вес
+                const weightEl = item.querySelector('span.OIT8K');
+                const weightText = weightEl?.textContent || '';
+                const weightMatch = weightText.match(/(\d+(\.\d+)?)\s*т/);
+                const weight = weightMatch ? weightMatch[1] + ' т' : '—';
 
-        // Извлекаем цену
-        const priceEl = item.querySelector('[data-testid="compact-view-hidden-rate"]');
-        const price = priceEl?.textContent.trim() || 'Ставка скрыта';
+                // Извлекаем цену
+                const priceEl = item.querySelector('[data-testid="compact-view-hidden-rate"]');
+                const price = priceEl?.textContent.trim() || 'Ставка скрыта';
 
-        // Извлекаем UUID из data-load-id
-        const loadId = item.getAttribute('data-load-id') || '—';
-        const link = loadId && loadId !== '—'
-            ? `https://loads.ati.su/loadinfo/${loadId}`
-            : '#';
+                // Извлекаем UUID из data-load-id
+                const loadId = item.getAttribute('data-load-id') || '—';
+                const link = loadId && loadId !== '—'
+                    ? `https://loads.ati.su/loadinfo/${loadId}`
+                    : '#';
 
-        return { from, to, weight, price, link };
-    });
-});
+                return { from, to, weight, price, link };
+            });
+        });
 
         console.log('✅ Собрано грузов:', results.length);
-        console.log(results);
-
-      
-
-        console.log('✅ Все грузы обработаны');
         console.log(results);
 
         // Сохраняем в Google Таблицу
@@ -116,10 +111,10 @@ const browser = await puppeteer.launch({
         }
 
         console.log('✅ Все грузы обработаны и отправлены в Google Таблицу');
+        await browser.close();
 
     } catch (error) {
         console.error('❌ Ошибка:', error.message);
+        process.exit(1); // Важно: завершить процесс при ошибке
     }
-
-    // browser.close(); // Раскомментируй, если хочешь, чтобы браузер закрылся
 })();
