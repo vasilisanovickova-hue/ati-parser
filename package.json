@@ -1,0 +1,12 @@
+{
+  "name": "ati-parser",
+  "version": "1.0.0",
+  "description": "Парсер грузов с loads.ati.su",
+  "main": "parser.js",
+  "scripts": {
+    "start": "node parser.js"
+  },
+  "dependencies": {
+    "puppeteer": "^23.0.0"
+  }
+}
