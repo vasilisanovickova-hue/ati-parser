@@ -62,7 +62,7 @@ const chromium = require('chrome-aws-lambda');
                 const weightEl = item.querySelector('span.OIT8K');
                 const weightText = weightEl?.textContent || '';
                 const weightMatch = weightText.match(/(\d+(\.\d+)?)\s*т/);
-                const weight = weightMatch ? weightMatch[1] + ' т' || '—';
+                const weight = weightMatch ? weightMatch[1] + ' т' : '—';
 
                 // Извлекаем цену
                 const priceEl = item.querySelector('[data-testid="compact-view-hidden-rate"]');
