@@ -1,34 +1,7 @@
 const puppeteer = require('puppeteer');
-const fs = require('fs');
-const path = require('path');
 
 (async () => {
     try {
-        // 🔍 Попробуем найти Chrome
-        const expectedPath = '/opt/render/.cache/puppeteer/chrome/linux-127.0.6533.88/chrome-linux64/chrome';
-        let executablePath = expectedPath;
-
-        if (!fs.existsSync(expectedPath)) {
-            console.log('❌ Chrome не найден по пути:', expectedPath);
-            console.log('🔎 Ищем в кэше...');
-
-            const cacheDir = '/opt/render/.cache/puppeteer/';
-            const files = fs.readdirSync(cacheDir, { recursive: true });
-            const chromePaths = files
-                .filter(f => f.includes('chrome') && f.includes('linux') && f.endsWith('chrome'))
-                .map(f => path.join(cacheDir, f));
-
-            if (chromePaths.length === 0) {
-                throw new Error('❌ Chrome не найден в кэше Render.com');
-            }
-
-            executablePath = chromePaths[0];
-            console.log(`✅ Используем найденный Chrome: ${executablePath}`);
-        } else {
-            console.log(`✅ Используем прямой путь: ${executablePath}`);
-        }
-
-        // ✅ Запускаем браузер с найденным Chrome
         const browser = await puppeteer.launch({
             headless: "new",
             args: [
@@ -37,8 +10,7 @@ const path = require('path');
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
                 '--single-process'
-            ],
-            executablePath
+            ]
         });
 
         const page = await browser.newPage();

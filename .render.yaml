@@ -7,3 +7,5 @@ envVars:
     value: 22.16.0
   - key: PUPPETEER_SKIP_DOWNLOAD
     value: false
+  - key: PUPPETEER_CACHE_DIR
+    value: /opt/render/.cache/puppeteer
