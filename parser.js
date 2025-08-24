@@ -4,7 +4,7 @@ const { webkit } = require('playwright');
     let browser = null;
 
     try {
-        console.log('🚀 Запускаем браузер через Playwright (WebKit)...');
+        console.log('🚀 Запускаем WebKit через Playwright...');
 
         browser = await webkit.launch({ headless: true });
         const page = await browser.newPage();
