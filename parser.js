@@ -1,91 +1,42 @@
-const puppeteer = require('puppeteer-core');
-const chromium = require('chrome-aws-lambda');
+const fetch = require('node-fetch'); // Установится автоматически с puppeteer, или добавь в package.json
 
 (async () => {
-    let browser = null;
-
     try {
-        console.log('🚀 Пытаемся получить путь к Chrome...');
+        console.log('1. Запрашиваем грузы через API ATI.SU...');
 
-        // Убедимся, что executablePath доступен
-        const executablePath = await chromium.executablePath;
-
-        if (!executablePath) {
-            throw new Error('❌ Не удалось получить путь к Chrome от chrome-aws-lambda');
-        }
-
-        console.log(`✅ Chrome найден: ${executablePath}`);
-
-        browser = await puppeteer.launch({
-            executablePath,
-            args: chromium.args.concat([
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--single-process',
-                '--headless=new'
-            ]),
-            headless: true
+        const response = await fetch('https://api.ati.su/v3/load_search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            },
+            body: JSON.stringify({
+                "filter": {
+                    "from": { "id": 135, "type": 2, "exactOnly": false },
+                    "to": { "id": 1, "type": 2, "exactOnly": false },
+                    "dates": { "dateOption": "today-plus" },
+                    "extraParams": 0,
+                    "excludeTenders": false,
+                    "sortingType": 2
+                },
+                "page": 1,
+                "pageSize": 20
+            })
         });
 
-        const page = await browser.newPage();
-        console.log('1. Открываем: https://loads.ati.su');
-        await page.goto('https://loads.ati.su', { waitUntil: 'networkidle0', timeout: 60000 });
-
-        // Ждём 7 секунд — чтобы React приложение загрузилось
-        await new Promise(resolve => setTimeout(resolve, 7000));
-
-        // Устанавливаем фильтр: Нижний Новгород → Санкт-Петербург
-        const filterHash = '?filter=%7B"from"%3A%7B"id"%3A135%2C"type"%3A2%2C"exactOnly"%3Afalse%7D%2C"to"%3A%7B"id"%3A1%2C"type"%3A2%2C"exactOnly"%3Afalse%7D%2C"dates"%3A%7B"dateOption"%3A"today-plus"%7D%2C"extraParams"%3A0%2C"excludeTenders"%3Afalse%2C"sortingType"%3A2%7D&version=v2';
-
-        await page.evaluate((hash) => {
-            window.location.hash = hash;
-        }, filterHash);
-
-        console.log('2. Хэш установлен вручную');
-
-        // Ждём 25 секунд — чтобы грузы точно подгрузились
-        await new Promise(resolve => setTimeout(resolve, 25000));
-
-        // Проверяем, есть ли грузы
-        const hasLoads = await page.$('[data-app="pretty-load"]') !== null;
-
-        if (!hasLoads) {
-            console.log('❌ Грузы не появились');
-            await browser.close();
-            return;
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
         }
 
-        console.log('🚚 Грузы загружены');
+        const data = await response.json();
+        const results = data.loads.map(item => {
+            const from = item.route.points[0]?.name || '—';
+            const to = item.route.points[item.route.points.length - 1]?.name || '—';
+            const weight = item.cargo.weight ? `${item.cargo.weight} т` : '—';
+            const price = item.rate?.value ? `${item.rate.value} руб.` : 'Ставка скрыта';
+            const link = `https://loads.ati.su/loadinfo/${item.uuid}`;
 
-        // Собираем данные напрямую из элементов
-        const results = await page.evaluate(() => {
-            const items = Array.from(document.querySelectorAll('[data-app="pretty-load"]'));
-            return items.map(item => {
-                // Ищем города
-                const cityElements = Array.from(item.querySelectorAll('div.xsQQG'));
-                const from = cityElements[0]?.textContent.trim() || '—';
-                const to = cityElements[1]?.textContent.trim() || '—';
-
-                // Извлекаем вес
-                const weightEl = item.querySelector('span.OIT8K');
-                const weightText = weightEl?.textContent || '';
-                const weightMatch = weightText.match(/(\d+(\.\d+)?)\s*т/);
-                const weight = weightMatch ? weightMatch[1] + ' т' : '—';
-
-                // Извлекаем цену
-                const priceEl = item.querySelector('[data-testid="compact-view-hidden-rate"]');
-                const price = priceEl?.textContent.trim() || 'Ставка скрыта';
-
-                // Извлекаем UUID из data-load-id
-                const loadId = item.getAttribute('data-load-id') || '—';
-                const link = loadId && loadId !== '—'
-                    ? `https://loads.ati.su/loadinfo/${loadId}`
-                    : '#';
-
-                return { from, to, weight, price, link };
-            });
+            return { from, to, weight, price, link };
         });
 
         console.log('✅ Собрано грузов:', results.length);
@@ -129,7 +80,5 @@ const chromium = require('chrome-aws-lambda');
     } catch (error) {
         console.error('❌ Ошибка:', error.message);
         process.exit(1);
-    } finally {
-        if (browser) await browser.close();
     }
 })();

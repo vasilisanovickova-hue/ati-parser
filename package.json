@@ -5,7 +5,6 @@
     "start": "node parser.js"
   },
   "dependencies": {
-    "puppeteer-core": "^22.0.0",
-    "chrome-aws-lambda": "^10.1.0"
+    "node-fetch": "^2.6.12"
   }
 }
